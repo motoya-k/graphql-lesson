@@ -1,15 +1,12 @@
-import { buildHTTPExecutor } from "@graphql-tools/executor-http";
+import { parse } from "graphql";
 import { stitchSchemas } from "@graphql-tools/stitch";
-import { SubschemaConfig } from "@graphql-tools/delegate/typings";
+import { stitchingDirectives } from "@graphql-tools/stitching-directives";
 import { schemaFromExecutor } from "@graphql-tools/wrap";
-import { GraphQLSchema, print } from "graphql";
+import { print } from "graphql";
 import { AsyncExecutor } from "@graphql-tools/utils";
 import { fetch } from "@whatwg-node/fetch";
 import { SchemaConfig } from "./config";
-
-const remoteExecutor = buildHTTPExecutor({
-  endpoint: "http://localhost:4001/graphql",
-});
+const { stitchingDirectivesTransformer } = stitchingDirectives();
 
 /**
  A simple way to create executor
@@ -59,12 +56,23 @@ const createExecutor = async (endpoint: string) => {
     return fetchResult.json();
   };
 
-  const remoteSchema = await schemaFromExecutor(executor);
+  const remoteSchema = await fetchRemoteSchema(executor);
   const subSchema = {
     schema: remoteSchema,
     executor,
   };
   return subSchema;
+};
+
+const buildSchema = (sdl: string) => {
+  return sdl;
+};
+const fetchRemoteSchema = async (executor: AsyncExecutor) => {
+  // 2. Fetch schemas from their raw SDL queries...
+  const result = await executor({ document: parse("{ _sdl }") });
+  console.log("result", result);
+  // return buildSchema(result.data._sdl);
+  return schemaFromExecutor(executor);
 };
 
 export const createGatewaySchema = async <
@@ -79,6 +87,7 @@ export const createGatewaySchema = async <
     })
   );
   return stitchSchemas<TContext>({
+    // subschemaConfigTransforms: [stitchingDirectivesTransformer],
     subschemas: subSchemas,
   });
 };

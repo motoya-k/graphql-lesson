@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "dev": "cross-env NODE_ENV=development ts-node-dev --exit-child --respawn src/index.ts",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "build": "tsc -p ."
   },
   "devDependencies": {
     "@types/node": "20.4.1",
@@ -19,6 +20,7 @@
     "@graphql-tools/executor-http": "^1.0.1",
     "@graphql-tools/schema": "^10.0.0",
     "@graphql-tools/stitch": "^9.0.0",
+    "@graphql-tools/stitching-directives": "^3.0.0",
     "graphql": "^16.7.1",
     "graphql-yoga": "^3.9.1"
   }

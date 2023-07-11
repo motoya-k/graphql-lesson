@@ -1,19 +1,25 @@
 {
   "compilerOptions": {
-    "rootDirs": [
-      "src"
-    ],
-    "outDir": "dist",
-    "lib": [
-      "es2020",
-    ],
-    "target": "es2020",
-    "module": "es2020",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "types": [
-      "node"
-    ]
-  }
+      "allowJs": true,
+      "declaration": true,
+      "esModuleInterop": true,
+      "strictNullChecks": true,
+      "module": "commonjs",
+      "outDir": "lib",
+      "sourceMap": true,
+      "target": "ES2022",
+      "skipLibCheck": true,
+      "baseUrl": ".",
+      "paths": {
+          "@/*": [
+              "./src/*"
+          ]
+      }
+  },
+  "include": [
+      "**/*.ts"
+  ],
+  "exclude": [
+      "node_modules"
+  ]
 }

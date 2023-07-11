@@ -16,15 +16,21 @@ var root = {
   },
 };
 
-var app = express();
-app.use(
-  "/graphql",
-  graphqlHTTP({
-    schema: schema,
-    rootValue: root,
-    graphiql: true,
-  })
-);
-const PORT = 4002
-app.listen(PORT);
-console.log(`Running a GraphQL API server at http://localhost:${PORT}/graphql`);
+async function server() {
+  var app = express();
+  app.use(
+    "/graphql",
+    graphqlHTTP({
+      schema: schema,
+      rootValue: root,
+      graphiql: true,
+    })
+  );
+  const PORT = 4002;
+  app.listen(PORT);
+  console.log(
+    `Running a GraphQL API server at http://localhost:${PORT}/graphql`
+  );
+}
+
+server();
