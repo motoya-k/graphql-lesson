@@ -1,19 +1,7 @@
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
-
-const typeDefs = `#graphql
-  type Book {
-    title: String
-    author: String
-    email: String @deprecated(reason: "Use \`author\` instead")
-  }
-
-  type Query {
-    books: [Book]
-    ping2: String
-  }
-`;
-
+import { deprecatedDirective } from "./directives/auth";
+import { makeExecutableSchema } from "@graphql-tools/schema";
 const books = [
   {
     title: "The Awakening",
@@ -27,17 +15,38 @@ const books = [
   },
 ];
 
+const { deprecatedDirectiveTypeDefs, deprecatedDirectiveTransformer } =
+  deprecatedDirective("myDeprecated");
+
+const baseTypeDefs = `#graphql
+  # locations https://www.apollographql.com/docs/apollo-server/v3/schema/creating-directives/#supported-locations
+  type Book {
+    title: String 
+    author: String 
+    email: String @myDeprecated(reason: "test")
+  }
+
+  type Query {
+    books: [Book]
+    ping2: String
+  }
+`;
+
 const resolvers = {
   Query: {
     books: () => books,
     ping2: () => "pong from apollo-server",
   },
 };
+let schema = makeExecutableSchema({
+  typeDefs: [deprecatedDirectiveTypeDefs, baseTypeDefs],
+  resolvers,
+});
+schema = deprecatedDirectiveTransformer(schema);
 
 async function server() {
   const server = new ApolloServer({
-    typeDefs,
-    resolvers,
+    schema,
   });
 
   const { url } = await startStandaloneServer(server, {
