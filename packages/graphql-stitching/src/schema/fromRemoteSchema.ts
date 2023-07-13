@@ -1,4 +1,4 @@
-import { parse } from "graphql";
+import { parse, buildSchema } from "graphql";
 import { stitchSchemas } from "@graphql-tools/stitch";
 import { stitchingDirectives } from "@graphql-tools/stitching-directives";
 import { schemaFromExecutor } from "@graphql-tools/wrap";
@@ -6,6 +6,7 @@ import { print } from "graphql";
 import { AsyncExecutor } from "@graphql-tools/utils";
 import { fetch } from "@whatwg-node/fetch";
 import { SchemaConfig } from "./config";
+import fs from "fs";
 const { stitchingDirectivesTransformer } = stitchingDirectives();
 
 /**
@@ -52,11 +53,13 @@ const createExecutor = async (endpoint: string) => {
         Accept: "application/json",
       },
       body: JSON.stringify({ query, variables, operationName, extensions }),
+      // cache: 'no-cache',
     });
     return fetchResult.json();
   };
 
   const remoteSchema = await fetchRemoteSchema(executor);
+
   const subSchema = {
     schema: remoteSchema,
     executor,
@@ -64,14 +67,15 @@ const createExecutor = async (endpoint: string) => {
   return subSchema;
 };
 
-const buildSchema = (sdl: string) => {
-  return sdl;
-};
+// NOTE: dsl を参照する方
+// const fetchRemoteSchema = async (executor: AsyncExecutor) => {
+//   const result: any = await executor({ document: parse("{ _sdl }") });
+//   return buildSchema(
+//     `directive @test (reason: String) on FIELD_DEFINITION | ENUM_VALUE | QUERY | FIELD \n ${result.data._sdl}`
+//   );
+// };
+
 const fetchRemoteSchema = async (executor: AsyncExecutor) => {
-  // 2. Fetch schemas from their raw SDL queries...
-  const result = await executor({ document: parse("{ _sdl }") });
-  console.log("result", result);
-  // return buildSchema(result.data._sdl);
   return schemaFromExecutor(executor);
 };
 
@@ -87,7 +91,7 @@ export const createGatewaySchema = async <
     })
   );
   return stitchSchemas<TContext>({
-    // subschemaConfigTransforms: [stitchingDirectivesTransformer],
+    subschemaConfigTransforms: [stitchingDirectivesTransformer],
     subschemas: subSchemas,
   });
 };

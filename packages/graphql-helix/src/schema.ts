@@ -26,6 +26,22 @@ export const schema = new GraphQLSchema({
   query: new GraphQLObjectType({
     name: "Query",
     fields: () => ({
+      _sdl: {
+        type: GraphQLString,
+        resolve: () => {
+          return `
+            type Query {
+              _sdl: String
+              alphabet: [String]
+              song: Song
+            }
+            type Song {
+              firstVerse: String
+              secondVerse: String
+            }
+          `;
+        },
+      },
       alphabet: {
         type: new GraphQLList(GraphQLString),
         resolve: async function* () {

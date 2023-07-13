@@ -9,29 +9,28 @@ export const message = {
   author: "yan",
 };
 
+const typeDefs = /* GraphQL */ `
+  type Query {
+    ping: String!
+    messages: [Message!]
+    _sdl: String
+  }
+
+  type Mutation {
+    createMessage(title: String!, content: String!, author: String!): Message
+  }
+
+  type Message {
+    _id: ID!
+    title: String!
+    content: String!
+    author: String!
+  }
+`;
+
 function main() {
   const schema = createSchema({
-    typeDefs: /* GraphQL */ `
-      type Query {
-        ping: String!
-        messages: [Message!]
-      }
-
-      type Mutation {
-        createMessage(
-          title: String!
-          content: String!
-          author: String!
-        ): Message
-      }
-
-      type Message {
-        _id: ID!
-        title: String!
-        content: String!
-        author: String!
-      }
-    `,
+    typeDefs,
     resolvers: {
       Query: {
         ping() {
@@ -39,6 +38,9 @@ function main() {
         },
         messages: async () => {
           return [message];
+        },
+        _sdl: async () => {
+          return typeDefs;
         },
       },
       Mutation: {
