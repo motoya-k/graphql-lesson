@@ -1,4 +1,4 @@
-# Introduction to GraphQL Stitching
+# GraphQL Lesson
 
 ## Overview
 
