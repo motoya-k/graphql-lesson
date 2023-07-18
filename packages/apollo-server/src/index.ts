@@ -3,16 +3,27 @@ import { startStandaloneServer } from "@apollo/server/standalone";
 import { deprecatedDirective } from "./directives/auth";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { stitchingDirectives } from "@graphql-tools/stitching-directives";
+import { prisma } from "./client.ts/prisma";
 
+const authors = [
+  {
+    name: "Kate Chopin",
+    email: "kate@example.com",
+  },
+  {
+    name: "Paul Auster",
+    email: "paul@example.com",
+  },
+];
 const books = [
   {
     title: "The Awakening",
-    author: "Kate Chopin",
+    // author: authors[0],
     email: "kate@example.com",
   },
   {
     title: "City of Glass",
-    author: "Paul Auster",
+    author: authors[0],
     email: "paul@example.com",
   },
 ];
@@ -25,27 +36,69 @@ const { allStitchingDirectivesTypeDefs, stitchingDirectivesValidator } =
 // locations https://www.apollographql.com/docs/apollo-server/v3/schema/creating-directives/#supported-locations
 const baseTypeDefs = `#graphql
   ${allStitchingDirectivesTypeDefs}
-  type Book {
-    title: String 
-    author: String 
-    email: String
+
+  type User {
+    name: String!
+    email: String!
+    eventId: String
+    event: Event
+  }
+
+  type Event {
+    id: String!
+    title: String!
+    date: String!
+    location: String!
+    users: [User]!
   }
 
   type Query {
-    books: [Book]
-    ping2: String
+    # internal
+    ping: String
     _sdl: String
+    # external
+    users: [User]!
+    events: [Event]!
   }
 `;
 const typeDefs = `${deprecatedDirectiveTypeDefs} ${baseTypeDefs}`;
 
 const resolvers = {
   Query: {
+    ping: () => "pong from apollo-server",
     _sdl: () => typeDefs,
-    books: () => books,
-    ping2: () => "pong from apollo-server",
+    users: async () => {
+      const users = await prisma.user.findMany();
+      return users;
+    },
+    events: async () => {
+      const events = await prisma.event.findMany();
+      return events;
+    },
+  },
+  User: {
+    event: async (parent) => {
+      if (!parent.eventId) return null;
+      const event = await prisma.event.findUnique({
+        where: {
+          id: parent.eventId,
+        },
+      });
+      return event;
+    },
+  },
+  Event: {
+    users: async (parent) => {
+      const users = await prisma.user.findMany({
+        where: {
+          eventId: parent.id,
+        },
+      });
+      return users;
+    },
   },
 };
+
 let schema = stitchingDirectivesValidator(
   makeExecutableSchema({
     typeDefs,

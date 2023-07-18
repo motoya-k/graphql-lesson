@@ -5,7 +5,7 @@
       "esModuleInterop": true,
       "strictNullChecks": true,
       "module": "commonjs",
-      "outDir": "lib",
+      "outDir": "dist",
       "sourceMap": true,
       "target": "ES2022",
       "skipLibCheck": true,

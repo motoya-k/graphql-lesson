@@ -45,13 +45,11 @@ export function deprecatedDirective(directiveName: string) {
           } 
         },
         [MapperKind.QUERY](queryConfig) {
-          console.log("run QUERY");
           const deprecatedDirective = getDirective(
             schema,
             queryConfig,
             directiveName
           )?.[0];
-          console.log("queryConfig.getFields()", queryConfig.getFields());
           if (queryConfig.getFields()[0]) {
             queryConfig.getFields()[0].resolve = async () => {
               return "pong from apollo-server (overwritten)";

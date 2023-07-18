@@ -4,28 +4,83 @@ import {
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLString,
+  GraphQLOutputType,
 } from "graphql";
+import { prisma } from "./client/prisma";
+
+const CourseType = new GraphQLObjectType({
+  name: "Course",
+  fields: () => ({
+    id: { type: GraphQLString },
+    title: { type: GraphQLString },
+    instructorId: { type: GraphQLString },
+    instructor: {
+      type: UserType,
+      resolve: async (parent) => {
+        const user = await prisma.user.findUnique({
+          where: {
+            id: parent.instructorId,
+          },
+        });
+        return user;
+      },
+    },
+  }),
+});
+const AssignmentType = new GraphQLObjectType({
+  name: "Assignment",
+  fields: () => ({
+    id: { type: GraphQLString },
+    title: { type: GraphQLString },
+    description: { type: GraphQLString },
+    courseId: { type: GraphQLString },
+    course: {
+      type: CourseType,
+      resolve: async (parent) => {
+        const course = await prisma.course.findUnique({
+          where: {
+            id: parent.courseId,
+          },
+        });
+        return course;
+      },
+    },
+  }),
+});
+const UserType = new GraphQLObjectType({
+  name: "User",
+  fields: () => ({
+    id: { type: GraphQLString },
+    name: { type: GraphQLString },
+    email: { type: GraphQLString },
+    eventId: { type: GraphQLString },
+  }),
+});
 
 export const schema = new GraphQLSchema({
-  mutation: new GraphQLObjectType({
-    name: "Mutation",
-    fields: () => ({
-      echo: {
-        args: {
-          text: {
-            type: GraphQLString,
-          },
-        },
-        type: GraphQLString,
-        resolve: (_root, args) => {
-          return args.text;
-        },
-      },
-    }),
-  }),
+  // mutation: new GraphQLObjectType({
+  //   name: "Mutation",
+  //   fields: () => ({
+  //     echo: {
+  //       args: {
+  //         text: {
+  //           type: GraphQLString,
+  //         },
+  //       },
+  //       type: GraphQLString,
+  //       resolve: (_root, args) => {
+  //         return args.text;
+  //       },
+  //     },
+  //   }),
+  // }),
   query: new GraphQLObjectType({
     name: "Query",
     fields: () => ({
+      ping: {
+        type: GraphQLString,
+        resolve: () => "pong from graphql-helix",
+      },
       _sdl: {
         type: GraphQLString,
         resolve: () => {
@@ -42,56 +97,46 @@ export const schema = new GraphQLSchema({
           `;
         },
       },
-      alphabet: {
-        type: new GraphQLList(GraphQLString),
-        resolve: async function* () {
-          for (let letter = 65; letter <= 90; letter++) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            yield String.fromCharCode(letter);
-          }
+      courses: {
+        type: new GraphQLList(CourseType),
+        resolve: async () => {
+          const courses = await prisma.course.findMany();
+          return courses;
         },
       },
-      song: {
-        type: new GraphQLObjectType({
-          name: "Song",
-          fields: () => ({
-            firstVerse: {
-              type: GraphQLString,
-              resolve: () => "Now I know my ABC's.",
-            },
-            secondVerse: {
-              type: GraphQLString,
-              resolve: () =>
-                new Promise((resolve) =>
-                  setTimeout(
-                    () => resolve("Next time won't you sing with me?"),
-                    5000
-                  )
-                ),
-            },
-          }),
-        }),
-        resolve: () => ({}),
-      },
-    }),
-  }),
-  subscription: new GraphQLObjectType({
-    name: "Subscription",
-    fields: () => ({
-      count: {
-        type: GraphQLInt,
-        args: {
-          to: {
-            type: GraphQLInt,
-          },
+      assignments: {
+        type: new GraphQLList(AssignmentType),
+        resolve: async () => {
+          const assignments = await prisma.assignment.findMany();
+          return assignments;
         },
-        subscribe: async function* (_root, args) {
-          for (let count = 1; count <= args.to; count++) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            yield { count };
-          }
+      },
+      users: {
+        type: new GraphQLList(UserType),
+        resolve: async () => {
+          const users = await prisma.user.findMany();
+          return users;
         },
       },
     }),
   }),
+  // subscription: new GraphQLObjectType({
+  //   name: "Subscription",
+  //   fields: () => ({
+  //     count: {
+  //       type: GraphQLInt,
+  //       args: {
+  //         to: {
+  //           type: GraphQLInt,
+  //         },
+  //       },
+  //       subscribe: async function* (_root, args) {
+  //         for (let count = 1; count <= args.to; count++) {
+  //           await new Promise((resolve) => setTimeout(resolve, 1000));
+  //           yield { count };
+  //         }
+  //       },
+  //     },
+  //   }),
+  // }),
 });
