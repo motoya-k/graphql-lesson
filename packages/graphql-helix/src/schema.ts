@@ -100,8 +100,25 @@ export const schema = new GraphQLSchema({
       courses: {
         type: new GraphQLList(CourseType),
         resolve: async () => {
+          console.log('call courses from graphql-helix')
           const courses = await prisma.course.findMany();
           return courses;
+        },
+      },
+      courseById: {
+        type: CourseType,
+        args: {
+          id: {
+            type: GraphQLString,
+          },
+        },
+        resolve: async (_root, args) => {
+          const course = await prisma.course.findUnique({
+            where: {
+              id: args.id,
+            },
+          });
+          return course;
         },
       },
       assignments: {
@@ -114,6 +131,7 @@ export const schema = new GraphQLSchema({
       users: {
         type: new GraphQLList(UserType),
         resolve: async () => {
+          console.log('call users from graphql-helix')
           const users = await prisma.user.findMany();
           return users;
         },

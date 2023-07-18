@@ -17,6 +17,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@graphql-tools/delegate": "^10.0.0",
     "@graphql-tools/executor-http": "^1.0.1",
     "@graphql-tools/schema": "^10.0.0",
     "@graphql-tools/stitch": "^9.0.0",

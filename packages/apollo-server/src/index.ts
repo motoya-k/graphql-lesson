@@ -40,14 +40,14 @@ const baseTypeDefs = `#graphql
   type User {
     name: String!
     email: String!
-    eventId: String
+    eventId: String 
     event: Event
   }
 
   type Event {
     id: String!
     title: String!
-    date: String!
+    date: String! @myDeprecated(reason: "use event instead")
     location: String!
     users: [User]!
   }

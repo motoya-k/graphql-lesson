@@ -1,11 +1,12 @@
-import { parse, buildSchema } from "graphql";
-import { stitchSchemas } from "@graphql-tools/stitch";
+import { parse, buildSchema, OperationTypeNode } from "graphql";
+import { IStitchSchemasOptions, stitchSchemas } from "@graphql-tools/stitch";
 import { stitchingDirectives } from "@graphql-tools/stitching-directives";
 import { schemaFromExecutor } from "@graphql-tools/wrap";
 import { print } from "graphql";
 import { AsyncExecutor } from "@graphql-tools/utils";
 import { fetch } from "@whatwg-node/fetch";
 import { SchemaConfig } from "./config";
+import { delegateToSchema } from "@graphql-tools/delegate";
 import fs from "fs";
 const { stitchingDirectivesTransformer } = stitchingDirectives();
 
@@ -38,7 +39,15 @@ const remoteExecutor2 = buildHTTPExecutor({
 
 **/
 
-const createExecutor = async (endpoint: string) => {
+type NonNullable<T> = T extends null | undefined ? never : T;
+const createExecutor = async <
+  TContext extends Record<string, any> = Record<string, any>
+>(
+  endpoint: string,
+  schemaOptions?: Partial<
+    NonNullable<IStitchSchemasOptions<TContext>["subschemas"]>[number]
+  >
+) => {
   const executor: AsyncExecutor = async ({
     document,
     variables,
@@ -60,9 +69,13 @@ const createExecutor = async (endpoint: string) => {
 
   const remoteSchema = await fetchRemoteSchema(executor);
 
-  const subSchema = {
+  console.log("schemaOptions", schemaOptions);
+  const subSchema: NonNullable<
+    IStitchSchemasOptions<TContext>["subschemas"]
+  >[number] = {
     schema: remoteSchema,
     executor,
+    ...(schemaOptions ?? {}),
   };
   return subSchema;
 };
@@ -86,12 +99,60 @@ export const createGatewaySchema = async <
 ) => {
   const subSchemas = await Promise.all(
     Object.keys(config).map(async (key) => {
-      const subSchema = await createExecutor(config[key].graphqlEndpoint);
+      const { graphqlEndpoint, ...subSchemaOption } = config[key];
+      const subSchema = await createExecutor(graphqlEndpoint, subSchemaOption);
       return subSchema;
     })
   );
+  console.log('subSchemas', subSchemas)
   return stitchSchemas<TContext>({
     subschemaConfigTransforms: [stitchingDirectivesTransformer],
     subschemas: subSchemas,
+    typeDefs: `
+      extend type User {
+        courses: [Course]
+      }
+    `,
+    // resolvers: {
+    //   User: {
+    //     // courses: {
+    //     //   selectionSet: `{ id }`,
+    //     //   resolve: (user, _args, context, info) => {
+    //     //     console.log("call delegate to schema with user", user);
+    //     //     return delegateToSchema({
+    //     //       // schema を key で指定できるようにしたほうがいい
+    //     //       schema: subSchemas[2],
+    //     //       operation: OperationTypeNode.QUERY,
+    //     //       fieldName: "courses",
+    //     //       // args: {
+    //     //       //   where: {
+    //     //       //     userId: user.id,
+    //     //       //   },
+    //     //       // },
+    //     //       context,
+    //     //       info,
+    //     //     });
+    //     //   },
+    //     // },
+    //     likes: {
+    //       selectionSet: `{ id }`,
+    //       resolve: (user, _args, context, info) => {
+    //         console.log("call delegate to schema with user", user);
+    //         return delegateToSchema({
+    //           schema: subSchemas[1],
+    //           operation: OperationTypeNode.QUERY,
+    //           fieldName: "likes",
+    //           // args: {
+    //           //   where: {
+    //           //     userId: user.id,
+    //           //   },
+    //           // },
+    //           context,
+    //           info,
+    //         });
+    //       },
+    //     },
+    //   },
+    // },
   });
 };
