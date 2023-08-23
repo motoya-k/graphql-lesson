@@ -33,6 +33,8 @@ const { deprecatedDirectiveTypeDefs, deprecatedDirectiveTransformer } =
 const { allStitchingDirectivesTypeDefs, stitchingDirectivesValidator } =
   stitchingDirectives();
 
+console.log("allStitchingDirectivesTypeDefs", allStitchingDirectivesTypeDefs);
+
 // locations https://www.apollographql.com/docs/apollo-server/v3/schema/creating-directives/#supported-locations
 const baseTypeDefs = `#graphql
   ${allStitchingDirectivesTypeDefs}
@@ -57,6 +59,7 @@ const baseTypeDefs = `#graphql
     ping: String
     _sdl: String
     # external
+    user(id: String!): User @merge(keyField: "id")
     users: [User]!
     events: [Event]!
   }
@@ -67,6 +70,14 @@ const resolvers = {
   Query: {
     ping: () => "pong from apollo-server",
     _sdl: () => typeDefs,
+    user: async (_parent, args) => {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: args.id,
+        },
+      });
+      return user;
+    },
     users: async () => {
       const users = await prisma.user.findMany();
       return users;

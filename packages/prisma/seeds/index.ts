@@ -6,6 +6,7 @@ import {
   eventFactory,
   courseFactory,
   assignmentFactory,
+  ticketFactory,
 } from "../factories";
 
 const prisma = new PrismaClient();
@@ -60,11 +61,21 @@ export const createCourseAndAssignments = async () => {
   });
 };
 
+export const createTickets = async () => {
+  const users = userFactory.buildList(3);
+  await prisma.user.createMany({ data: users });
+  users.forEach(async (user) => {
+    const ticket = ticketFactory.build({ assignedToId: user.id });
+    await prisma.ticket.create({ data: ticket });
+  });
+};
+
 const execute = async () => {
   await seedSimpleUsers();
   await seedUserLikePosts();
   await createEventAndUsers();
   await createCourseAndAssignments();
+  await createTickets();
 };
 
 execute();

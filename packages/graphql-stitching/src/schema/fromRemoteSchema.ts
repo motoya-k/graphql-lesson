@@ -1,13 +1,12 @@
 import { parse, buildSchema, OperationTypeNode } from "graphql";
 import { IStitchSchemasOptions, stitchSchemas } from "@graphql-tools/stitch";
 import { stitchingDirectives } from "@graphql-tools/stitching-directives";
-import { schemaFromExecutor } from "@graphql-tools/wrap";
+// import { schemaFromExecutor } from "@graphql-tools/wrap";
 import { print } from "graphql";
 import { AsyncExecutor } from "@graphql-tools/utils";
-import { fetch } from "@whatwg-node/fetch";
 import { SchemaConfig } from "./config";
-import { delegateToSchema } from "@graphql-tools/delegate";
-import fs from "fs";
+// import { delegateToSchema } from "@graphql-tools/delegate";
+// import fs from "fs";
 const { stitchingDirectivesTransformer } = stitchingDirectives();
 
 /**
@@ -39,15 +38,7 @@ const remoteExecutor2 = buildHTTPExecutor({
 
 **/
 
-type NonNullable<T> = T extends null | undefined ? never : T;
-const createExecutor = async <
-  TContext extends Record<string, any> = Record<string, any>
->(
-  endpoint: string,
-  schemaOptions?: Partial<
-    NonNullable<IStitchSchemasOptions<TContext>["subschemas"]>[number]
-  >
-) => {
+const createExecutor = async (endpoint: string): Promise<AsyncExecutor> => {
   const executor: AsyncExecutor = async ({
     document,
     variables,
@@ -66,10 +57,23 @@ const createExecutor = async <
     });
     return fetchResult.json();
   };
+  return executor;
+};
 
-  const remoteSchema = await fetchRemoteSchema(executor);
+type NonNullable<T> = T extends null | undefined ? never : T;
+const createSubSchema = async <
+  TContext extends Record<string, any> = Record<string, any>
+>(
+  endpoint: string,
+  sdlEndpoint: string,
+  schemaOptions?: Partial<
+    NonNullable<IStitchSchemasOptions<TContext>["subschemas"]>[number]
+  >
+) => {
+  const executor = await createExecutor(endpoint);
+  const sdlExecutor = await createExecutor(sdlEndpoint);
+  const remoteSchema = await fetchRemoteSchema(sdlExecutor);
 
-  console.log("schemaOptions", schemaOptions);
   const subSchema: NonNullable<
     IStitchSchemasOptions<TContext>["subschemas"]
   >[number] = {
@@ -81,16 +85,14 @@ const createExecutor = async <
 };
 
 // NOTE: dsl を参照する方
-// const fetchRemoteSchema = async (executor: AsyncExecutor) => {
-//   const result: any = await executor({ document: parse("{ _sdl }") });
-//   return buildSchema(
-//     `directive @test (reason: String) on FIELD_DEFINITION | ENUM_VALUE | QUERY | FIELD \n ${result.data._sdl}`
-//   );
-// };
-
 const fetchRemoteSchema = async (executor: AsyncExecutor) => {
-  return schemaFromExecutor(executor);
+  const result: any = await executor({ document: parse("{ _sdl }") });
+  return buildSchema(result.data._sdl);
 };
+
+// const fetchRemoteSchema = async (executor: AsyncExecutor) => {
+//   return schemaFromExecutor(executor);
+// };
 
 export const createGatewaySchema = async <
   TContext extends Record<string, any> = Record<string, any>
@@ -99,20 +101,25 @@ export const createGatewaySchema = async <
 ) => {
   const subSchemas = await Promise.all(
     Object.keys(config).map(async (key) => {
-      const { graphqlEndpoint, ...subSchemaOption } = config[key];
-      const subSchema = await createExecutor(graphqlEndpoint, subSchemaOption);
+      const { graphqlEndpoint, sdlEndpoint, ...subSchemaOption } = config[key];
+      const subSchema = await createSubSchema(
+        graphqlEndpoint,
+        sdlEndpoint,
+        subSchemaOption
+      );
       return subSchema;
     })
   );
-  console.log('subSchemas', subSchemas)
+  console.log("subSchemas", subSchemas);
   return stitchSchemas<TContext>({
     subschemaConfigTransforms: [stitchingDirectivesTransformer],
     subschemas: subSchemas,
-    typeDefs: `
-      extend type User {
-        courses: [Course]
-      }
-    `,
+    // typeDefs: `
+    //   extend type User {
+    //     courses: [Course]
+    //     likes: [Like]
+    //   }
+    // `,
     // resolvers: {
     //   User: {
     //     // courses: {
@@ -152,6 +159,25 @@ export const createGatewaySchema = async <
     //         });
     //       },
     //     },
+    //     // expectedQuery: {
+    //     //   selectionSet: `{ id }`,
+    //     //   resolve: (user, _args, context, info) => {
+    //     //     console.log("call delegate to schema with user", user);
+    //     //     return delegateToSchema({
+    //     //       schema: subSchemas[0],
+    //     //       operation: OperationTypeNode.QUERY,
+    //     //       fieldName: "expectedQuery",
+    //     //       // args: {
+    //     //       //   where: {
+    //     //       //     userId: user.id,
+    //     //       //   },
+    //     //       // },
+    //     //       context,
+    //     //       info,
+    //     //     });
+    //     //   }
+
+    //     // }
     //   },
     // },
   });

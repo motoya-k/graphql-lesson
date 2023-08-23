@@ -1,5 +1,7 @@
 import { createYoga, createSchema } from "graphql-yoga";
 import { createServer } from "http";
+import { useDisableIntrospection } from "@graphql-yoga/plugin-disable-introspection";
+import { prisma } from "./client/prisma";
 
 const PORT = 4004;
 
@@ -12,19 +14,38 @@ export const message = {
 const typeDefs = /* GraphQL */ `
   type Query {
     ping: String!
-    messages: [Message!]
-    _sdl: String
+    _sdl: String!
+    events: [Event!]!
+    event(id: ID!): Event!
+    users: [User!]!
+    user(id: ID!): User!
+    tickets: [Ticket!]!
+    ticket(id: ID!): Ticket!
   }
 
-  type Mutation {
-    createMessage(title: String!, content: String!, author: String!): Message
-  }
-
-  type Message {
-    _id: ID!
+  type Event {
+    id: ID!
     title: String!
-    content: String!
-    author: String!
+    date: String!
+    location: String!
+    users: [User!]!
+  }
+
+  type User {
+    id: ID!
+    name: String!
+    email: String!
+    event: Event
+    eventId: String!
+    tickets: [Ticket!]!
+  }
+
+  type Ticket {
+    id: ID!
+    title: String!
+    description: String!
+    assignedToId: ID!
+    assignedTo: User!
   }
 `;
 
@@ -36,24 +57,124 @@ function main() {
         ping() {
           return "pong";
         },
-        messages: async () => {
-          return [message];
+        events: async () => {
+          return await prisma.event.findMany();
         },
-        _sdl: async () => {
-          return typeDefs;
+        event: async (_, { id }) => {
+          try {
+            return await prisma.event.findUniqueOrThrow({
+              where: {
+                id,
+              },
+            });
+          } catch {
+            return null;
+          }
+        },
+        users: async () => {
+          return await prisma.user.findMany();
+        },
+        user: async (_, { id }) => {
+          try {
+            return await prisma.user.findUniqueOrThrow({
+              where: {
+                id,
+              },
+            });
+          } catch {
+            return null;
+          }
+        },
+        tickets: async () => {
+          return await prisma.ticket.findMany();
+        },
+        ticket: async (_, { id }) => {
+          try {
+            return await prisma.ticket.findUnique({
+              where: {
+                id,
+              },
+            });
+          } catch {
+            return null;
+          }
         },
       },
-      Mutation: {
-        createMessage: async (_, { title, content, author }) => {
-          return message;
+      User: {
+        event: async (parent) => {
+          try {
+            return await prisma.event.findUniqueOrThrow({
+              where: {
+                id: parent.eventId,
+              },
+            });
+          } catch {
+            return null;
+          }
+        },
+        tickets: async (parent) => {
+          return await prisma.ticket.findMany({
+            where: {
+              assignedToId: parent.id,
+            },
+          });
+        },
+      },
+      Event: {
+        users: async (parent) => {
+          return await prisma.user.findMany({
+            where: {
+              eventId: parent.id,
+            },
+          });
+        },
+      },
+      Ticket: {
+        assignedTo: async (parent) => {
+          try {
+            return await prisma.user.findUniqueOrThrow({
+              where: {
+                id: parent.assignedToId,
+              },
+            });
+          } catch (error) {
+            return null;
+          }
         },
       },
     },
   });
-  const yoga = createYoga({ schema });
+  /** NOTE: introspection を無効にする */
+  const yoga = createYoga({ schema, plugins: [useDisableIntrospection()] });
   const server = createServer(yoga);
   server.listen(PORT, () => {
     console.info(`Server is running on http://localhost:${PORT}/graphql`);
+  });
+
+  const gatewaySchema = createSchema({
+    typeDefs: /* GraphQL */ `
+      type Query {
+        _sdl: String!
+        ping: String!
+      }
+    `,
+    resolvers: {
+      Query: {
+        ping() {
+          return "pong";
+        },
+        _sdl() {
+          return typeDefs;
+        },
+      },
+    },
+  });
+  const yogaForGateway = createYoga({ schema: gatewaySchema });
+  const internalServer = createServer(yogaForGateway);
+  internalServer.listen(4404, () => {
+    console.info(
+      `Internal Server for Gateway is running on http://localhost:${4405}/graphql`
+    );
   });
 }
 
