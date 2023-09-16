@@ -1,9 +1,12 @@
 import { parse, buildSchema, OperationTypeNode } from "graphql";
 import { IStitchSchemasOptions, stitchSchemas } from "@graphql-tools/stitch";
-import { stitchingDirectives } from "@graphql-tools/stitching-directives";
+import { stitchingDirectives } from '@graphql-tools/stitching-directives'
+
 import { print } from "graphql";
 import { AsyncExecutor } from "@graphql-tools/utils";
 import { SchemaConfig } from "./config";
+import fs from "fs";
+
 const { stitchingDirectivesTransformer } = stitchingDirectives();
 
 const createExecutor = async (endpoint: string): Promise<AsyncExecutor> => {
@@ -75,6 +78,12 @@ export const createGatewaySchema = async <
     })
   );
   console.log("subSchemas", subSchemas);
+  // subSchemas を /tmp 配下に json 形式で保存する
+  // fs.writeFileSync(
+  //   "/tmp/subSchemas.json",
+  //   JSON.stringify(subSchemas, null, 2),
+  //   "utf8"
+  // );
   return stitchSchemas<TContext>({
     subschemaConfigTransforms: [stitchingDirectivesTransformer],
     subschemas: subSchemas,

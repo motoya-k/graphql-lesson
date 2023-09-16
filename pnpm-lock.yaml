@@ -168,6 +168,43 @@ importers:
       '@graphql-lesson/prisma':
         specifier: workspace:*
         version: link:../prisma
+      '@graphql-tools/stitching-directives':
+        specifier: ^3.0.0
+        version: 3.0.0(graphql@16.7.1)
+      '@graphql-yoga/plugin-disable-introspection':
+        specifier: ^1.0.3
+        version: 1.0.3(graphql-yoga@4.0.3)(graphql@16.7.1)
+      graphql:
+        specifier: ^16.7.1
+        version: 16.7.1
+      graphql-yoga:
+        specifier: ^4.0.3
+        version: 4.0.3(graphql@16.7.1)
+    devDependencies:
+      '@types/node':
+        specifier: 20.4.1
+        version: 20.4.1
+      cross-env:
+        specifier: 7.0.3
+        version: 7.0.3
+      ts-node:
+        specifier: 10.9.1
+        version: 10.9.1(@types/node@20.4.1)(typescript@4.9.5)
+      ts-node-dev:
+        specifier: 2.0.0
+        version: 2.0.0(@types/node@20.4.1)(typescript@4.9.5)
+      typescript:
+        specifier: 4.9.5
+        version: 4.9.5
+
+  packages/graphql-yoga-2:
+    dependencies:
+      '@graphql-lesson/prisma':
+        specifier: workspace:*
+        version: link:../prisma
+      '@graphql-tools/stitching-directives':
+        specifier: ^3.0.0
+        version: 3.0.0(graphql@16.7.1)
       '@graphql-yoga/plugin-disable-introspection':
         specifier: ^1.0.3
         version: 1.0.3(graphql-yoga@4.0.3)(graphql@16.7.1)

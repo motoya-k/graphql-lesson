@@ -1,7 +1,11 @@
 import { createYoga, createSchema } from "graphql-yoga";
 import { createServer } from "http";
 import { useDisableIntrospection } from "@graphql-yoga/plugin-disable-introspection";
+import { stitchingDirectives } from "@graphql-tools/stitching-directives";
 import { prisma } from "./client/prisma";
+
+const { allStitchingDirectivesTypeDefs, stitchingDirectivesValidator } =
+  stitchingDirectives();
 
 const PORT = 4004;
 
@@ -12,13 +16,14 @@ export const message = {
 };
 
 const typeDefs = /* GraphQL */ `
+  ${allStitchingDirectivesTypeDefs}
   type Query {
     ping: String!
     _sdl: String!
     events: [Event!]!
     event(id: ID!): Event!
     users: [User!]!
-    user(id: ID!): User!
+    user(id: ID!): User! @merge(keyField: "id")
     tickets: [Ticket!]!
     ticket(id: ID!): Ticket!
   }
@@ -161,7 +166,7 @@ function main() {
     resolvers: {
       Query: {
         ping() {
-          return "pong";
+          return "pong from sdl endpoint";
         },
         _sdl() {
           return typeDefs;
@@ -169,7 +174,9 @@ function main() {
       },
     },
   });
-  const yogaForGateway = createYoga({ schema: gatewaySchema });
+  const yogaForGateway = createYoga({
+    schema: stitchingDirectivesValidator(gatewaySchema),
+  });
   const internalServer = createServer(yogaForGateway);
   internalServer.listen(4404, () => {
     console.info(

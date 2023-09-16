@@ -14,6 +14,8 @@ model User {
     id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
     name             String
     email            String
+    location         String?
+    bio              String?
     posts            Post[]
     comments         Comment[]
     likes            Like[]

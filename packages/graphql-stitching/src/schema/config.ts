@@ -48,4 +48,8 @@ export const schemaConfig: SchemaConfig = {
     graphqlEndpoint: "http://localhost:4004/graphql",
     sdlEndpoint: "http://localhost:4404/graphql",
   },
+  "graphql-yoga-2": {
+    graphqlEndpoint: "http://localhost:4014/graphql",
+    sdlEndpoint: "http://localhost:4414/graphql",
+  },
 };

@@ -6,5 +6,7 @@ export const userFactory = Factory.define<User>(({ params: { eventId } }) => ({
   id: chance.guid({ version: 4 }),
   name: chance.name(),
   email: chance.email(),
+  location: chance.city(),
+  bio: chance.paragraph(),
   eventId: eventId ?? null,
 }));
